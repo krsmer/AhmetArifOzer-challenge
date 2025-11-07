@@ -3,6 +3,7 @@ module challenge::arena;
 use challenge::hero::Hero;
 use sui::event;
 
+
 // ========= STRUCTS =========
 
 public struct Arena has key, store {
@@ -27,7 +28,16 @@ public struct ArenaCompleted has copy, drop {
 // ========= FUNCTIONS =========
 
 public fun create_arena(hero: Hero, ctx: &mut TxContext) {
-
+    let arena = Arena {
+        id: object::new(ctx),
+        warrior: hero,
+        owner: ctx.sender()
+    };
+    event::emit(ArenaCreated{
+        arena_id: object::id(&arena),
+        timestamp: ctx.epoch_timestamp_ms(),
+    });
+    transfer::share_object(arena);
     // TODO: Create an arena object
         // Hints:
         // Use object::new(ctx) for unique ID
@@ -39,7 +49,28 @@ public fun create_arena(hero: Hero, ctx: &mut TxContext) {
 
 #[allow(lint(self_transfer))]
 public fun battle(hero: Hero, arena: Arena, ctx: &mut TxContext) {
-    
+    use challenge::hero;
+    let Arena {id, warrior, owner} = arena;
+    if (hero::hero_power(&hero) > hero::hero_power(&warrior)) {
+
+        event::emit(ArenaCompleted {
+            winner_hero_id: object::id(&hero),
+            loser_hero_id: object::id(&warrior),
+            timestamp: ctx.epoch_timestamp_ms(),
+
+        });
+        transfer::public_transfer(hero, ctx.sender());
+        transfer::public_transfer(warrior, ctx.sender());
+    } else {
+        event::emit(ArenaCompleted{
+            winner_hero_id: object::id(&warrior),
+            loser_hero_id: object::id(&hero),
+            timestamp: ctx.epoch_timestamp_ms(),
+        });
+        transfer::public_transfer(hero, owner);
+        transfer::public_transfer(warrior, owner);
+    };
+    object::delete(id);
     // TODO: Implement battle logic
         // Hints:
         // Destructure arena to get id, warrior, and owner
