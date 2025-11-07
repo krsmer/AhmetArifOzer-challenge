@@ -2,7 +2,12 @@ import { Transaction } from "@mysten/sui/transactions";
 
 export const buyHero = (packageId: string, listHeroId: string, priceInSui: string) => {
   const tx = new Transaction();
-  
+  const priceInMMist = BigInt(parseFloat(priceInSui) * 1000000000);
+  const [paymentCoin] = tx.splitCoins(tx.gas, [tx.pure.u64(priceInMMist)]);
+  tx.moveCall({
+    target: `${packageId}::marketplace::buy_hero`,
+    arguments: [tx.object(listHeroId), paymentCoin],
+  })
   // TODO: Convert SUI to MIST (1 SUI = 1,000,000,000 MIST)
     // Hints:
     // const priceInMist = ?
